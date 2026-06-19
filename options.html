@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>网页导出助手设置</title>
+    <link rel="stylesheet" href="css/options.css">
+</head>
+<body>
+<header>
+    <div class="header-content">
+        <img id="logo" src="icons/icon48.png" alt="logo">
+    </div>
+    <div><h1 data-i18n="optionsTitle">网页导出助手设置</h1></div>
+    <button type="button" id="langToggle" class="lang-toggle" data-i18n-title="switchToEn">EN</button>
+</header>
+<main>
+    <div class="settings">
+        <p class="auto-save-hint" data-i18n="optionsAutoSaveHint">修改后将自动保存，并应用于所有网页。</p>
+        <!-- 网站禁用名单 -->
+        <fieldset class="ios-fieldset">
+            <legend class="ios-legend" data-i18n="blacklistLegend">网站禁用名单</legend>
+            <div class="help-text ios-help" style="margin-bottom: 12px;" data-i18n="blacklistHelp">列入名单的网站不会显示悬浮工具栏，也无法使用暂存、复制等功能。可在扩展图标弹窗中快速开关当前网站。</div>
+            <div class="blacklist-add-row">
+                <input type="text" id="blacklistDomainInput" class="ios-input" data-i18n-placeholder="blacklistPlaceholder" placeholder="例如：example.com" autocomplete="off">
+                <button type="button" id="addBlacklistDomain" class="ios-button small" data-i18n="add">添加</button>
+            </div>
+            <div id="blacklistList" class="blacklist-list">
+                <div class="blacklist-empty" id="blacklistEmpty" data-i18n="blacklistEmpty">暂无禁用网站</div>
+            </div>
+        </fieldset>
+
+        <!-- 自动暂存设置 -->
+        <fieldset class="ios-fieldset">
+            <legend class="ios-legend" data-i18n="autoStoreLegend">自动暂存设置</legend>
+            <div class="form-row ios-row">
+                <label for="autoStoreEnabled" class="ios-label" data-i18n="autoStoreEnabled">启用自动暂存</label>
+                <div class="ios-switch-container">
+                    <select id="autoStoreEnabled" class="ios-select">
+                        <option value="true" data-i18n="yes">是</option>
+                        <option value="false" data-i18n="no">否</option>
+                    </select>
+                </div>
+                <div class="help-text ios-help" data-i18n="autoStoreEnabledHelp">选中文本时自动暂存</div>
+            </div>
+            
+            <div class="form-row ios-row">
+                <label for="autoStoreDelay" class="ios-label" data-i18n="autoStoreDelay">自动暂存延迟（毫秒）</label>
+                <div class="ios-input-container">
+                    <input type="number" id="autoStoreDelay" min="0" max="5000" value="500" step="100" class="ios-input">
+                </div>
+                <div class="help-text ios-help" data-i18n="autoStoreDelayHelp">选中文本后延迟多少毫秒自动暂存</div>
+            </div>
+            
+        </fieldset>
+
+        <!-- 按钮显示设置 -->
+        <fieldset class="ios-fieldset">
+            <legend class="ios-legend" data-i18n="buttonDisplayLegend">按钮显示设置</legend>
+            <div class="form-row ios-row">
+                <label for="showStoreButton" class="ios-label" data-i18n="showStoreButton">显示暂存按钮</label>
+                <div class="ios-switch-container">
+                    <select id="showStoreButton" class="ios-select">
+                        <option value="true" data-i18n="yes">是</option>
+                        <option value="false" data-i18n="no">否</option>
+                    </select>
+                </div>
+                <div class="help-text ios-help" data-i18n="showStoreButtonHelp">选中文本时显示暂存按钮</div>
+            </div>
+            
+            <div class="form-row ios-row">
+                <label for="showCopyButton" class="ios-label" data-i18n="showCopyButton">显示复制按钮</label>
+                <div class="ios-switch-container">
+                    <select id="showCopyButton" class="ios-select">
+                        <option value="true" data-i18n="yes">是</option>
+                        <option value="false" data-i18n="no">否</option>
+                    </select>
+                </div>
+                <div class="help-text ios-help" data-i18n="showCopyButtonHelp">选中文本时显示复制按钮</div>
+            </div>
+
+            <div class="form-row ios-row">
+                <label for="showExportButton" class="ios-label" data-i18n="showExportButton">显示导出按钮</label>
+                <div class="ios-switch-container">
+                    <select id="showExportButton" class="ios-select">
+                        <option value="true" data-i18n="yes">是</option>
+                        <option value="false" data-i18n="no">否</option>
+                    </select>
+                </div>
+                <div class="help-text ios-help" data-i18n="showExportButtonHelp">选中文本时显示导出按钮</div>
+            </div>
+
+            <div class="form-row ios-row">
+                <label for="selectionButtonPosition" class="ios-label" data-i18n="selectionButtonPosition">按钮出现位置</label>
+                <div class="ios-switch-container">
+                    <select id="selectionButtonPosition" class="ios-select">
+                        <option value="topLeft" data-i18n="posTopLeft">鼠标的左上角</option>
+                        <option value="topRight" data-i18n="posTopRight">鼠标的右上角</option>
+                        <option value="bottomLeft" data-i18n="posBottomLeft">鼠标的左下角</option>
+                        <option value="bottomRight" data-i18n="posBottomRight">鼠标的右下角</option>
+                    </select>
+                </div>
+                <div class="help-text ios-help" data-i18n="selectionButtonPositionHelp">暂存、复制、导出按钮显示在鼠标指针的所选方位</div>
+            </div>
+        </fieldset>
+
+        <!-- 快捷键设置 -->
+        <fieldset class="ios-fieldset">
+            <legend class="ios-legend" data-i18n="hotkeyLegend">快捷键设置</legend>
+            <div class="form-row ios-row">
+                <label for="storeHotkey" class="ios-label" data-i18n="storeHotkey">暂存快捷键</label>
+                <div class="ios-input-group">
+                    <input type="text" id="storeHotkey" placeholder="Ctrl+Shift+S" readonly class="ios-input">
+                    <button id="setStoreHotkey" class="ios-button small" data-i18n="setHotkey">设置快捷键</button>
+                </div>
+                <div class="help-text ios-help" data-i18n="storeHotkeyHelp">手动暂存当前选中的文本</div>
+            </div>
+            
+            <div class="form-row ios-row">
+                <label for="undoStoreHotkey" class="ios-label" data-i18n="undoStoreHotkey">撤销暂存快捷键</label>
+                <div class="ios-input-group">
+                    <input type="text" id="undoStoreHotkey" placeholder="Ctrl+Shift+Z" readonly class="ios-input">
+                    <button id="setUndoStoreHotkey" class="ios-button small" data-i18n="setHotkey">设置快捷键</button>
+                </div>
+                <div class="help-text ios-help" data-i18n="undoStoreHotkeyHelp">撤销上一次暂存的内容</div>
+            </div>
+            
+        </fieldset>
+    </div>
+</main>
+<script src="js/i18n.js"></script>
+<script src="options.js"></script>
+</body>
+</html>

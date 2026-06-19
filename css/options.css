@@ -1,0 +1,364 @@
+/* 全局样式 */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #1C1C1E;
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 16px;
+    background-color: #F2F2F7;
+    line-height: 1.4;
+    box-sizing: border-box;
+}
+
+/* 标题栏样式 */
+header {
+    display: flex;
+    align-items: center;
+    background-color: #007AFF;
+    color: #fff;
+    padding: 12px 16px;
+    border-radius: 12px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+}
+
+header img {
+    margin-right: 12px;
+    width: 28px;
+    height: 28px;
+}
+
+header h1 {
+    font-size: 18px;
+    margin: 0;
+    font-weight: 600;
+    flex: 1;
+}
+
+.lang-toggle {
+    margin-left: auto;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    line-height: 1.4;
+    transition: background 0.15s;
+}
+
+.lang-toggle:hover {
+    background: rgba(255, 255, 255, 0.32);
+}
+
+/* 设置内容样式 */
+.settings {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+/* iOS风格字段集 */
+.ios-fieldset {
+    margin-bottom: 16px;
+    border: none;
+    border-radius: 10px;
+    padding: 16px;
+    background-color: #F9F9F9;
+}
+
+.ios-legend {
+    font-size: 15px;
+    color: #1C1C1E;
+    font-weight: 600;
+    padding: 0 0 12px 0;
+    margin-bottom: 12px;
+    border-bottom: 1px solid #E5E5EA;
+}
+
+/* iOS风格表单行 */
+.ios-row {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 14px;
+    align-items: flex-start;
+}
+
+.ios-label {
+    font-size: 15px;
+    font-weight: 500;
+    color: #1C1C1E;
+    margin-bottom: 6px;
+    display: block;
+}
+
+/* iOS风格输入容器 */
+.ios-input-container {
+    width: 100%;
+    margin-bottom: 6px;
+}
+
+.ios-input-group {
+    display: flex;
+    width: 100%;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+.ios-input {
+    flex: 1;
+    padding: 10px 14px;
+    border: 1px solid #E5E5EA;
+    border-radius: 8px;
+    font-size: 15px;
+    background-color: #F9F9F9;
+    transition: all 0.2s ease;
+    min-width: 120px;
+}
+
+.ios-input:focus {
+    outline: none;
+    border-color: #007AFF;
+    background-color: #fff;
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+}
+
+.ios-input[readonly] {
+    background-color: #F2F2F7;
+    cursor: pointer;
+}
+
+.ios-input[readonly]:focus {
+    background-color: #fff3cd;
+    border-color: #FF9500;
+}
+
+/* iOS风格选择框 */
+.ios-switch-container {
+    width: 100%;
+    margin-bottom: 6px;
+}
+
+.ios-select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #E5E5EA;
+    border-radius: 8px;
+    font-size: 15px;
+    background-color: #F9F9F9;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.ios-select:focus {
+    outline: none;
+    border-color: #007AFF;
+    background-color: #fff;
+    box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+}
+
+/* iOS风格按钮 */
+.ios-button {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+    display: inline-block;
+}
+
+.ios-button.primary {
+    background-color: #007AFF;
+    color: white;
+    width: 100%;
+    padding: 14px 18px;
+    font-size: 16px;
+    font-weight: 600;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.ios-button.primary:hover {
+    background-color: #0056CC;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 122, 255, 0.3);
+}
+
+.ios-button.small {
+    background-color: #007AFF;
+    color: white;
+    padding: 6px 12px;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.ios-button.small:hover {
+    background-color: #0056CC;
+    transform: translateY(-1px);
+}
+
+.ios-button.danger {
+    background-color: #FF3B30;
+    color: white;
+    padding: 10px 16px;
+    font-size: 15px;
+}
+
+.ios-button.danger:hover {
+    background-color: #FF2D55;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 59, 48, 0.3);
+}
+
+/* iOS风格按钮容器 */
+.ios-button-container {
+    width: 100%;
+    margin-bottom: 6px;
+}
+
+/* 自动保存说明 */
+.auto-save-hint {
+    font-size: 12px;
+    color: #8E8E93;
+    margin: 0 0 16px 0;
+    line-height: 1.4;
+    text-align: center;
+}
+
+/* iOS风格帮助文本 */
+.ios-help {
+    font-size: 13px;
+    color: #8E8E93;
+    margin-top: 3px;
+    line-height: 1.3;
+}
+
+/* iOS风格页脚 */
+.ios-footer {
+    text-align: center;
+    margin-top: 18px;
+    font-size: 13px;
+    color: #8E8E93;
+    padding: 12px;
+    background-color: #F9F9F9;
+    border-radius: 10px;
+}
+
+/* 响应式设计 */
+@media (max-width: 480px) {
+    body {
+        padding: 12px;
+    }
+    
+    .settings {
+        padding: 16px;
+    }
+    
+    .ios-fieldset {
+        padding: 12px;
+    }
+    
+    .ios-input-group {
+        flex-direction: column;
+        gap: 6px;
+    }
+    
+    .ios-button.small {
+        width: 100%;
+    }
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.ios-fieldset {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* 滚动条样式 */
+.settings::-webkit-scrollbar {
+    width: 8px;
+}
+
+.settings::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.settings::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.settings::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.blacklist-add-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.blacklist-add-row .ios-input {
+    flex: 1;
+    min-width: 0;
+}
+
+.blacklist-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 32px;
+}
+
+.blacklist-empty {
+    font-size: 13px;
+    color: #8E8E93;
+    padding: 4px 0;
+}
+
+.blacklist-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: #fff;
+    border: 1px solid #E5E5EA;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #1C1C1E;
+}
+
+.blacklist-tag button {
+    border: none;
+    background: none;
+    color: #8E8E93;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0 2px;
+}
+
+.blacklist-tag button:hover {
+    color: #FF3B30;
+}

@@ -1,0 +1,67 @@
+{
+  "manifest_version": 3,
+  "default_locale": "zh_CN",
+  "name": "__MSG_extName__",
+  "version": "2.2.1",
+  "description": "__MSG_extDescription__",
+  "permissions": ["storage", "tabs"],
+  "host_permissions": ["<all_urls>"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["js/i18n.js", "content.js"]
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "images/list.png",
+        "images/list_hover.png", 
+        "images/list_active.png",
+        "images/edit.png",
+        "images/drag.png",
+        "images/move_left.png",
+        "images/move_right.png",
+        "images/output_hover.png",
+        "images/output_active.png",
+        "images/output.png",
+        "images/options_hover.png",
+        "images/options_active.png",
+        "images/options.png",
+        "images/single_output.png",
+        "images/batch_output.png",
+        "images/delete.png",
+        "images/file_empty.svg",
+        "images/file_full.svg",
+        "images/mouse_copy.svg",
+        "images/mouse_storage.svg",
+        "images/mouse_output.svg",
+        "icons/icon48.png",
+        "icons/icon16.png",
+        "js/docx.js",
+        "js/jszip.min.js",
+        "js/Sortable.min.js",
+        "export.js",
+        "export.html"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "options_page": "options.html"
+}

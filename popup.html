@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文档导出助手</title>
+    <link rel="stylesheet" href="css/popup.css">
+</head>
+<body>
+    <header class="header">
+        <img class="header-logo" src="icons/icon48.png" alt="">
+        <h1 data-i18n="popupTitle">文档导出助手</h1>
+        <span class="version" id="versionBadge">v2.1.0</span>
+        <button type="button" id="langToggle" class="lang-toggle" data-i18n-title="switchToEn">EN</button>
+        <button type="button" class="header-settings" id="openFullSettings" data-i18n-title="settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+        </button>
+    </header>
+
+    <div class="site-bar">
+        <div class="site-info">
+            <span class="site-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                </svg>
+            </span>
+            <span class="site-domain" id="currentDomain" data-i18n="loading">加载中…</span>
+        </div>
+        <label class="toggle" id="siteEnabledToggleWrap" data-i18n-title="siteEnabledTitle">
+            <input type="checkbox" id="siteEnabledToggle">
+            <span class="slider"></span>
+        </label>
+    </div>
+
+    <div class="status-row">
+        <span class="status-label" data-i18n="autoStore">自动暂存</span>
+        <label class="toggle">
+            <input type="checkbox" id="autoStoreEnabled">
+            <span class="slider"></span>
+        </label>
+    </div>
+
+    <div class="status-row">
+        <span class="status-label" data-i18n="showStoreButton">显示暂存按钮</span>
+        <label class="toggle">
+            <input type="checkbox" id="showStoreButton">
+            <span class="slider"></span>
+        </label>
+    </div>
+
+    <div class="status-row">
+        <span class="status-label" data-i18n="showCopyButton">显示复制按钮</span>
+        <label class="toggle">
+            <input type="checkbox" id="showCopyButton">
+            <span class="slider"></span>
+        </label>
+    </div>
+
+    <div class="status-row">
+        <span class="status-label" data-i18n="showExportButton">显示导出按钮</span>
+        <label class="toggle">
+            <input type="checkbox" id="showExportButton">
+            <span class="slider"></span>
+        </label>
+    </div>
+
+    <section class="quick-section">
+        <div class="quick-section-header">
+            <h3 data-i18n="quickActions">快捷操作</h3>
+            <span class="storage-badge" id="storageBadge">暂存 0 篇</span>
+        </div>
+        <button type="button" class="quick-btn quick-btn-full" id="clearStorageBtn" disabled>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            <span data-i18n="clearStorage">清空暂存</span>
+        </button>
+    </section>
+
+    <div class="toast" id="toast"></div>
+
+    <script src="js/i18n.js"></script>
+    <script src="popup-ui.js"></script>
+</body>
+</html>
