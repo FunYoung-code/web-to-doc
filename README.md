@@ -9,6 +9,7 @@
 [![GitHub release](https://img.shields.io/github/v/release/FunYoung-code/web-to-doc)](https://github.com/FunYoung-code/web-to-doc/releases)
 [![License](https://img.shields.io/github/license/FunYoung-code/web-to-doc)](https://github.com/FunYoung-code/web-to-doc/blob/main/LICENSE)
 [![Chrome Web Store](https://img.shields.io/chrome-web-store/users/mjahdeaaenjokdcfagekdlgjpndgljdp?label=Chrome%20Web%20Store)](https://chromewebstore.google.com/detail/web-to-doc-%E7%BD%91%E9%A1%B5%E5%AF%BC%E5%87%BA%E5%8A%A9%E6%89%8B/mjahdeaaenjokdcfagekdlgjpndgljdp)
+[![Microsoft Edge Add-ons](https://img.shields.io/badge/dynamic/json?label=Edge%20Add-ons&query=activeInstallCount&suffix=%20users&url=https%3A%2F%2Fmicrosoftedge.microsoft.com%2Faddons%2Fgetproductdetailsbycrxid%2Fciofekgnakfbnlbanlkeabhonaogpfhf)](https://microsoftedge.microsoft.com/addons/detail/web-to-doc-%E7%BD%91%E9%A1%B5%E5%AF%BC%E5%87%BA%E5%8A%A9%E6%89%8B/ciofekgnakfbnlbanlkeabhonaogpfhf)
 [![Firefox Add-on](https://img.shields.io/amo/users/web-to-doc-%E7%BD%91%E9%A1%B5%E5%AF%BC%E5%87%BA%E5%8A%A9%E6%89%8B?label=Firefox%20Add-on)](https://addons.mozilla.org/addon/web-to-doc-%E7%BD%91%E9%A1%B5%E5%AF%BC%E5%87%BA%E5%8A%A9%E6%89%8B/)
 
 An open-source browser extension that exports selected webpage content to Word documents.
