@@ -93,7 +93,8 @@ Web to Doc 基于 [GNU General Public License v3.0](./LICENSE) 开源发布。
 
 ---
 
-**Web to Doc · 快速将网页整理成规范 Word 文档。**
+## 链接
+- **linux.do**：[https://linux.do/](https://linux.do/)
 
 ### 作者信息
 
