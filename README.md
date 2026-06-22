@@ -85,9 +85,10 @@ Web to Doc is released under the [GNU General Public License v3.0](./LICENSE).
 
 Third-party open-source libraries are listed in [THIRD_PARTY_LICENSES.md](./THIRD_PARTY_LICENSES.md).
 
----
+## Links
+- **linux.do**：[https://linux.do/](https://linux.do/)
 
-**Web to Doc · Turn webpages into clean Word documents.**
+---
 
 ### Author Information
 
