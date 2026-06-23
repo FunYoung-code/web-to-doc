@@ -14,8 +14,14 @@ window.addEventListener('message', function(event) {
             return;
         }
 
-        // 确保docxgen.min.js已加载并定义了docx对象
-        if (typeof docx === 'undefined') {
+        // 确保导出库已加载
+        if ((settings.exportFormat || 'docx') === 'pdf') {
+            if (!window.DocExportPdf || !window.DocExportPdf.getJsPDFConstructor() || typeof html2canvas === 'undefined') {
+                console.error('PDF 导出库未加载');
+                window.parent.postMessage({ type: 'EXPORT_ERROR', error: t('errPdfNotLoaded') }, '*');
+                return;
+            }
+        } else if (typeof docx === 'undefined') {
             console.error('docx对象未定义，请确保docxgen.min.js已加载');
             window.parent.postMessage({ type: 'EXPORT_ERROR', error: t('errDocxUndefined') }, '*');
             return;
@@ -30,7 +36,7 @@ window.addEventListener('message', function(event) {
             );
 
             // 执行导出
-            createAndDownloadDocx(temporaryStorage, settings, lineSpacingValue, filenameFormat)
+            exportByFormat(temporaryStorage, settings, lineSpacingValue, filenameFormat)
                 .then(() => {
                     // 发送导出完成消息
                     window.parent.postMessage({ type: 'EXPORT_COMPLETE', success: true }, '*');
@@ -51,7 +57,12 @@ window.addEventListener('message', function(event) {
             return;
         }
 
-        if (typeof docx === 'undefined') {
+        if ((settings.exportFormat || 'docx') === 'pdf') {
+            if (!window.DocExportPdf || !window.DocExportPdf.getJsPDFConstructor() || typeof html2canvas === 'undefined') {
+                window.parent.postMessage({ type: 'EXPORT_ERROR', error: t('errPdfNotLoaded') }, '*');
+                return;
+            }
+        } else if (typeof docx === 'undefined') {
             window.parent.postMessage({ type: 'EXPORT_ERROR', error: t('errDocxNotLoaded') }, '*');
             return;
         }
@@ -80,8 +91,12 @@ window.addEventListener('message', function(event) {
             return;
         }
 
-        // 确保docxgen.min.js已加载并定义了docx对象
-        if (typeof docx === 'undefined') {
+        if ((settings.exportFormat || 'docx') === 'pdf') {
+            if (!window.DocExportPdf || !window.DocExportPdf.getJsPDFConstructor() || typeof html2canvas === 'undefined') {
+                window.parent.postMessage({ type: 'EXPORT_ERROR', error: t('errPdfNotLoaded') }, '*');
+                return;
+            }
+        } else if (typeof docx === 'undefined') {
             console.error('docx对象未定义，请确保docxgen.min.js已加载');
             window.parent.postMessage({ type: 'EXPORT_ERROR', error: t('errDocxUndefined') }, '*');
             return;
@@ -96,7 +111,7 @@ window.addEventListener('message', function(event) {
             );
 
             // 执行单篇文章导出
-            createAndDownloadDocx([article], settings, lineSpacingValue, filenameFormat)
+            exportByFormat([article], settings, lineSpacingValue, filenameFormat)
                 .then(() => {
                     // 发送导出完成消息
                     window.parent.postMessage({ type: 'EXPORT_COMPLETE', success: true }, '*');
@@ -111,6 +126,24 @@ window.addEventListener('message', function(event) {
         }
     }
 });
+
+function applyExportTextFilterToArticles(formattedTexts, settings) {
+    if (!window.DocExportTextFilter || !Array.isArray(formattedTexts)) {
+        return formattedTexts;
+    }
+    return window.DocExportTextFilter.filterFormattedArticles(formattedTexts, settings);
+}
+
+function exportByFormat(formattedTexts, settings, lineSpacingValue, filenameFormat, options) {
+    formattedTexts = applyExportTextFilterToArticles(formattedTexts, settings);
+    if ((settings.exportFormat || 'docx') === 'pdf') {
+        if (!window.DocExportPdf || !window.DocExportPdf.createAndDownloadPdf) {
+            return Promise.reject(new Error(t('errPdfNotLoaded')));
+        }
+        return window.DocExportPdf.createAndDownloadPdf(formattedTexts, settings, lineSpacingValue, filenameFormat, options);
+    }
+    return createAndDownloadDocx(formattedTexts, settings, lineSpacingValue, filenameFormat, options);
+}
 
 /**
  * 校验数字是否有效
@@ -1181,14 +1214,15 @@ function exportArticlesAsZipPackage(temporaryStorage, settings, filenameFormat) 
     );
 
     const zip = new JSZip();
+    const fileExt = (settings.exportFormat || 'docx') === 'pdf' ? '.pdf' : '.docx';
 
     function uniqueEntryName(baseName) {
         const stem = sanitizeZipEntryStem(baseName);
-        let candidate = stem + '.docx';
+        let candidate = stem + fileExt;
         let k = 1;
         while (zip.files[candidate]) {
             k += 1;
-            candidate = stem + '_' + k + '.docx';
+            candidate = stem + '_' + k + fileExt;
         }
         return candidate;
     }
@@ -1211,7 +1245,7 @@ function exportArticlesAsZipPackage(temporaryStorage, settings, filenameFormat) 
         }
         var article = temporaryStorage[i];
         i += 1;
-        return createAndDownloadDocx([article], settings, lineSpacingValue, filenameFormat, { returnBlobOnly: true })
+        return exportByFormat([article], settings, lineSpacingValue, filenameFormat, { returnBlobOnly: true })
             .then(function (result) {
                 var entryName = uniqueEntryName(result.baseName);
                 zip.file(entryName, result.blob);

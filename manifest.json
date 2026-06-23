@@ -20,7 +20,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["js/i18n.js", "content.js"]
+      "js": ["js/i18n.js", "js/export-text-filter.js", "content.js"]
     }
   ],
   "icons": {
@@ -55,6 +55,10 @@
         "icons/icon48.png",
         "icons/icon16.png",
         "js/docx.js",
+        "js/jspdf.min.js",
+        "js/html2canvas.min.js",
+        "js/export-pdf.js",
+        "js/export-text-filter.js",
         "js/jszip.min.js",
         "js/Sortable.min.js",
         "export.js",

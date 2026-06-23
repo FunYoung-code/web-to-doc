@@ -473,6 +473,9 @@ class SettingsManager {
             heading1FontSize: 16,
             heading2FontSize: 16,
             heading3FontSize: 16,
+            exportFormat: "docx",
+            exportTextExcludeEnabled: "yes",
+            exportTextExcludeCustom: "",
         };
         this.fontSizeMap = {
             42: "初号", 36: "小初", 26: "一号", 24: "小一",
@@ -491,7 +494,9 @@ class SettingsManager {
         return new Promise((resolve) => {
             try {
                 if (!isExtensionContextValid()) {
-                    throw new Error('Extension context invalidated');
+                    notifyExtensionContextInvalidatedOnce();
+                    resolve(this.getDefaultValues());
+                    return;
                 }
                 const defaults = this.getDefaultValues();
                 safeStorageGet(Object.keys(defaults), (result) => {
@@ -509,7 +514,9 @@ class SettingsManager {
         return new Promise((resolve) => {
             try {
                 if (!isExtensionContextValid()) {
-                    throw new Error('Extension context invalidated');
+                    notifyExtensionContextInvalidatedOnce();
+                    resolve();
+                    return;
                 }
                 safeStorageSet(settings, () => {
                     resolve();
@@ -602,6 +609,13 @@ class SettingsManager {
             pageNumberFontSize: parseInt(getOptionsEl("pageNumberFontSize").value, 10),
             pageNumberStyle: getOptionsEl("pageNumberStyle").value,
             filenameFormat: getOptionsEl("filenameFormat").value,
+            exportFormat: getOptionsEl("exportFormat") ? getOptionsEl("exportFormat").value : "docx",
+            exportTextExcludeEnabled: getOptionsEl("exportTextExcludeEnabled")
+                ? (getOptionsEl("exportTextExcludeEnabled").checked ? "yes" : "no")
+                : "yes",
+            exportTextExcludeCustom: getOptionsEl("exportTextExcludeCustom")
+                ? getOptionsEl("exportTextExcludeCustom").value
+                : "",
             userTags: [], // 暂时为空，后续可以添加标签管理功能
             articleSeparator: getOptionsEl("articleSeparator").value,
             customSeparator: getOptionsEl("customSeparator").value,
@@ -715,6 +729,28 @@ class SettingsManager {
 
         // 文件名格式
         getOptionsEl('filenameFormat').value = i18n.localizeFilenameFormat(result.filenameFormat || defaults.filenameFormat);
+
+        if (getOptionsEl('exportFormat')) {
+            getOptionsEl('exportFormat').value = result.exportFormat === 'pdf' ? 'pdf' : 'docx';
+        }
+
+        if (getOptionsEl('exportTextExcludeEnabled')) {
+            const exportTextExcludeCheckbox = getOptionsEl('exportTextExcludeEnabled');
+            const exportTextExcludeLabel = exportTextExcludeCheckbox.nextElementSibling;
+            const exportTextExcludeCircle = exportTextExcludeLabel.querySelector('span');
+            const excludeOn = (result.exportTextExcludeEnabled || defaults.exportTextExcludeEnabled) === 'yes';
+            exportTextExcludeCheckbox.checked = excludeOn;
+            if (excludeOn) {
+                exportTextExcludeLabel.style.backgroundColor = '#34C759';
+                exportTextExcludeCircle.style.left = '22px';
+            } else {
+                exportTextExcludeLabel.style.backgroundColor = '#E5E5EA';
+                exportTextExcludeCircle.style.left = '2px';
+            }
+        }
+        if (getOptionsEl('exportTextExcludeCustom')) {
+            getOptionsEl('exportTextExcludeCustom').value = result.exportTextExcludeCustom || defaults.exportTextExcludeCustom || '';
+        }
 
         // 文章分隔符设置（存储值若不在下拉选项内，浏览器会显示空白，必须归一化）
         const VALID_ARTICLE_SEPARATORS = ['newline', 'pagebreak', 'custom'];
@@ -1339,7 +1375,9 @@ optionsButtonContainer.addEventListener('click', function(event) {
         isButtonClickInProgress = true;
         
         if (!isExtensionContextValid()) {
-            throw new Error('Extension context invalidated');
+            notifyExtensionContextInvalidatedOnce();
+            isButtonClickInProgress = false;
+            return;
         }
         
         if (isOptionsPanelVisible) {
@@ -1388,7 +1426,9 @@ outputButtonContainer.addEventListener('click', function(ev) {
         isButtonClickInProgress = true;
 
         if (!isExtensionContextValid()) {
-            throw new Error('Extension context invalidated');
+            notifyExtensionContextInvalidatedOnce();
+            isButtonClickInProgress = false;
+            return;
         }
 
         document.querySelectorAll('.temporary-save-button, .selection-export-button, .copy-button').forEach(function (el) {
@@ -1473,7 +1513,8 @@ const EXPORT_STORAGE_SETTING_KEYS = [
     'paragraphSpacingBefore', 'paragraphSpacingAfter', 'pageMargins', 'lineSpacing',
     'fixedLineSpacing', 'multipleLineSpacing', 'firstLineIndent',
     'addPageNumbers', 'pageNumberPosition', 'pageNumberFontStyle',
-    'pageNumberFontSize', 'pageNumberStyle', 'filenameFormat', 'userTags',
+    'pageNumberFontSize', 'pageNumberStyle', 'filenameFormat', 'exportFormat',
+    'exportTextExcludeEnabled', 'exportTextExcludeCustom', 'userTags',
     'articleSeparator', 'customSeparator', 'saveTables', 'tableCellAlignment', 'saveImages', 'imageQuality',
     'imageMaxWidth', 'imageMaxHeight', 'imageFormat', 'preserveHyperlinks', 'generateTableOfContents',
     'tocTitle', 'tocTitleFontStyle', 'tocTitleFontSize', 'tocEntryFontStyle', 'tocEntryFontSize',
@@ -1542,7 +1583,38 @@ function buildProcessedExportSettings(settings) {
         heading1FontSize: getFontSizeInHalfPoints(settings.heading1FontSize, 16, chineseFontSizeMapping),
         heading2FontSize: getFontSizeInHalfPoints(settings.heading2FontSize, 16, chineseFontSizeMapping),
         heading3FontSize: getFontSizeInHalfPoints(settings.heading3FontSize, 16, chineseFontSizeMapping),
+        exportFormat: settings.exportFormat === 'pdf' ? 'pdf' : 'docx',
+        exportTextExcludeEnabled: settings.exportTextExcludeEnabled !== 'no' ? 'yes' : 'no',
+        exportTextExcludeCustom: settings.exportTextExcludeCustom || '',
+        pageMarginsCm: {
+            top: parseFloat(pageMargins.top) || 2.8,
+            right: parseFloat(pageMargins.right) || 2.8,
+            bottom: parseFloat(pageMargins.bottom) || 2.8,
+            left: parseFloat(pageMargins.left) || 2.8
+        },
     };
+}
+
+/**
+ * 创建导出 iframe。PDF 依赖 html2canvas 截图，不能用 display:none（会导致空白页）。
+ */
+function attachExportIframe() {
+    const exportFrame = document.createElement('iframe');
+    exportFrame.src = safeGetURL('export.html') + '?fromMessage=true';
+    exportFrame.setAttribute('aria-hidden', 'true');
+    exportFrame.style.cssText = [
+        'position:fixed',
+        'left:0',
+        'top:0',
+        'width:850px',
+        'height:1200px',
+        'opacity:0',
+        'pointer-events:none',
+        'border:none',
+        'z-index:-1'
+    ].join(';');
+    document.body.appendChild(exportFrame);
+    return exportFrame;
 }
 
 /** 合并多篇为一個 Word（与原导出按钮一致） */
@@ -1555,10 +1627,7 @@ function runMergedWordExport(temporaryStorage) {
     safeStorageGet(EXPORT_STORAGE_SETTING_KEYS, function(settings) {
         const processedSettings = buildProcessedExportSettings(settings);
         try {
-            const exportFrame = document.createElement('iframe');
-            exportFrame.src = safeGetURL('export.html') + '?fromMessage=true';
-            exportFrame.style.display = 'none';
-            document.body.appendChild(exportFrame);
+            const exportFrame = attachExportIframe();
 
             setTimeout(function() {
                 exportFrame.contentWindow.postMessage({
@@ -1616,10 +1685,7 @@ function runPerArticleWordExport(temporaryStorage) {
         }
 
         try {
-            exportFrame = document.createElement('iframe');
-            exportFrame.src = safeGetURL('export.html') + '?fromMessage=true';
-            exportFrame.style.display = 'none';
-            document.body.appendChild(exportFrame);
+            exportFrame = attachExportIframe();
 
             function zipExportHandler(event) {
                 if (!event.data || event.source !== exportFrame.contentWindow) return;
@@ -2208,10 +2274,7 @@ toggleButtonContainer.addEventListener('click', function (event) {
 
                         try {
                             // 创建导出页面的iframe
-                            const exportFrame = document.createElement('iframe');
-                            exportFrame.src = safeGetURL('export.html') + '?fromMessage=true';
-                            exportFrame.style.display = 'none';
-                            document.body.appendChild(exportFrame);
+                            const exportFrame = attachExportIframe();
 
                             // 给脚本足够时间加载
                             setTimeout(() => {
@@ -3175,14 +3238,22 @@ document.addEventListener('mouseup', function (event) {
     
     if (inContentPanel || inOptionsPanel) return;
     
-    let selectedText = selection.toString().trim();
+    let selectedText = '';
     let capturedRangeAtMouseup = null;
     if (selection.rangeCount > 0) {
         try {
-            capturedRangeAtMouseup = selection.getRangeAt(0).cloneRange();
+            const rangeAtMouseup = selection.getRangeAt(0);
+            capturedRangeAtMouseup = rangeAtMouseup.cloneRange();
+            selectedText = getSelectionContentFromRange(rangeAtMouseup, {
+                saveImages: false,
+                saveTables: false
+            }).text.trim();
         } catch (e) {
             capturedRangeAtMouseup = null;
+            selectedText = selection.toString().trim();
         }
+    } else {
+        selectedText = selection.toString().trim();
     }
     
     // 如果有面板打开，先关闭面板，然后继续处理文本选择
@@ -3224,7 +3295,12 @@ document.addEventListener('mouseup', function (event) {
 
 // 提取文本选择处理逻辑到单独的函数
 function processTextSelection(selectedText, event, selection, capturedRangeAtMouseup) {
-    if (!isExtensionActiveOnPage()) return;
+    if (!isExtensionActiveOnPage()) {
+        if (!isExtensionContextValid()) {
+            notifyExtensionContextInvalidatedOnce();
+        }
+        return;
+    }
 
     // 仅规范化行尾空白，保留段落/章节间换行结构
     selectedText = selectedText.replace(/[ \t]+\n/g, '\n').replace(/\n[ \t]+/g, '\n');
@@ -3240,166 +3316,10 @@ function processTextSelection(selectedText, event, selection, capturedRangeAtMou
     if (!activeSel || activeSel.rangeCount === 0) {
         // 无可用 Range：跳过图片/背景图解析，后续仍可按纯文本显示按钮与自动暂存
     } else {
-    const range = activeSel.getRangeAt(0);
-    const fragment = range.cloneContents();
-    
-    // 查找选中范围内的图片
-    const images = fragment.querySelectorAll('img');
-    let imageIndex = 0;
-    images.forEach(img => {
-        if (hasHiddenExtractAncestor(img, fragment)) {
-            return;
-        }
-        if (img.src && !img.src.startsWith('data:')) {
-            // 计算图片在选中文本中的相对位置
-            let startOffset = 0;
-            let endOffset = 0;
-            
-            // 尝试计算图片的精确位置，如果失败则使用简化位置
-            let positionCalculated = false;
-            let debugInfo = '';
-            
-            // 检查图片是否来自当前文档
-            if (img.ownerDocument === document) {
-                try {
-                    const imgRange = document.createRange();
-                    imgRange.selectNode(img);
-                    
-                    // 计算图片在选中范围内的相对位置
-                    const range = activeSel.getRangeAt(0);
-                    
-                    // 如果图片在选中范围内，计算其位置
-                    if (range.compareBoundaryPoints(Range.START_TO_START, imgRange) <= 0 &&
-                        range.compareBoundaryPoints(Range.END_TO_END, imgRange) >= 0) {
-                        
-                        // 计算从选中开始到图片开始的距离
-                        const tempRange = document.createRange();
-                        tempRange.setStart(range.startContainer, range.startOffset);
-                        tempRange.setEnd(imgRange.startContainer, imgRange.startOffset);
-                        startOffset = tempRange.toString().length;
-                        
-                        // 计算图片的长度（图片通常占用一个字符位置）
-                        endOffset = startOffset + 1;
-                        
-                        // 确保位置信息有效
-                        if (startOffset < 0) startOffset = 0;
-                        if (endOffset <= startOffset) endOffset = startOffset + 1;
-                        
-                        positionCalculated = true;
-                        debugInfo = '精确位置计算成功';
-                    }
-                } catch (error) {
-                    // 图片位置计算失败，这是正常情况，继续使用简化位置
-                    debugInfo = '位置计算失败，使用简化位置';
-                }
-            } else {
-                debugInfo = '图片来自不同文档，使用简化位置';
-            }
-            
-            // 如果精确位置计算失败，使用简化位置
-            if (!positionCalculated) {
-                startOffset = selectedText.length + imageIndex;
-                endOffset = startOffset + 1;
-            }
-            
-            // 只在调试模式下显示详细信息
-            if (window.debugMode) {
-                console.log(`图片处理: ${img.src.substring(0, 50)}... - ${debugInfo}`);
-            }
-            
-            selectedImages.push({
-                src: img.src,
-                alt: img.alt || '',
-                width: img.naturalWidth || img.width,
-                height: img.naturalHeight || img.height,
-                position: {
-                    startOffset: startOffset,
-                    endOffset: endOffset,
-                    type: 'img'
-                }
-            });
-            
-            imageIndex++;
-        }
-    });
-    
-    // 检查背景图片
-    const walker = document.createTreeWalker(
-        fragment,
-        NodeFilter.SHOW_ELEMENT,
-        null,
-        false
-    );
-    
-    let node;
-    while (node = walker.nextNode()) {
-        if (shouldSkipNodeForExtract(node, fragment)) {
-            continue;
-        }
-        if (node.style && node.style.backgroundImage && node.style.backgroundImage !== 'none') {
-            const match = node.style.backgroundImage.match(/url\(['"]?([^'"]+)['"]?\)/);
-            if (match && !match[1].startsWith('data:')) {
-                // 计算背景图片元素在选中文本中的相对位置
-                let startOffset = 0;
-                let endOffset = 0;
-                
-                // 尝试计算背景图片的精确位置，如果失败则使用简化位置
-                let positionCalculated = false;
-                
-                // 检查背景图片元素是否来自当前文档
-                if (node.ownerDocument === document) {
-                    try {
-                        const nodeRange = document.createRange();
-                        nodeRange.selectNode(node);
-                        
-                        // 计算背景图片相对于选中范围的偏移量
-                        const range = activeSel.getRangeAt(0);
-                        
-                        // 如果背景图片元素在选中范围内，计算其位置
-                        if (range.compareBoundaryPoints(Range.START_TO_START, nodeRange) <= 0 &&
-                            range.compareBoundaryPoints(Range.END_TO_END, nodeRange) >= 0) {
-                            
-                            // 计算从选中开始到背景图片元素开始的距离
-                            const tempRange = document.createRange();
-                            tempRange.setStart(range.startContainer, range.startOffset);
-                            tempRange.setEnd(nodeRange.startContainer, nodeRange.startOffset);
-                            startOffset = tempRange.toString().length;
-                            
-                            // 计算背景图片元素的长度（背景图片通常占用一个字符位置）
-                            endOffset = startOffset + 1;
-                            
-                            // 确保位置信息有效
-                            if (startOffset < 0) startOffset = 0;
-                            if (endOffset <= startOffset) endOffset = startOffset + 1;
-                            
-                            positionCalculated = true;
-                        }
-                    } catch (error) {
-                        // 背景图片位置计算失败，这是正常情况，继续使用简化位置
-                    }
-                }
-                
-                // 如果精确位置计算失败，使用简化位置
-                if (!positionCalculated) {
-                    startOffset = selectedText.length + imageIndex;
-                    endOffset = startOffset + 1;
-                }
-                
-                selectedImages.push({
-                    src: match[1],
-                    alt: '背景图片',
-                    width: node.offsetWidth || 100,
-                    height: node.offsetHeight || 100,
-                    position: {
-                        startOffset: startOffset,
-                        endOffset: endOffset,
-                        type: 'background'
-                    }
-                });
-                
-                imageIndex++;
-            }
-        }
+    const rangeForMedia = capturedRangeAtMouseup ||
+        (activeSel.rangeCount > 0 ? activeSel.getRangeAt(0) : null);
+    if (rangeForMedia) {
+        selectedImages = collectImagesGeometricallyInRange(rangeForMedia, selectedText);
     }
     }
 
@@ -3414,7 +3334,7 @@ function processTextSelection(selectedText, event, selection, capturedRangeAtMou
         }
     }
     
-    if (selectedText && !isButtonVisible) {
+    if (selectionHasMeaningfulText(selectedText) && !isButtonVisible) {
         // 处理自动暂存
         if (pluginSettings.autoStoreEnabled && selectedText !== lastStoredText) {
             // 清除之前的自动暂存定时器
@@ -3538,7 +3458,7 @@ function checkSiteBlacklist(blacklist) {
 }
 
 function isExtensionActiveOnPage() {
-    return !isSiteBlacklisted;
+    return !isSiteBlacklisted && isExtensionContextValid();
 }
 
 function applySiteBlacklistState() {
@@ -4690,10 +4610,65 @@ function loadOptionsPanel() {
             <div style="background-color: #F2F2F7; border-radius: 16px; padding: 10px; margin-bottom: 10px;">
                 <div style="font-size: 16px; font-weight: 600; color: #1C1C1E; margin-bottom: 16px;">${t('filenameSettings')}</div>
                 
+                <div style="background-color: white; border-radius: 12px; padding: 16px; margin-bottom: 12px;">
+                    <label style="display: block; margin-bottom: 6px; font-weight: 500; color: #3A3A3C; font-size: 14px;">${t('exportFormat')}</label>
+                    <select id="exportFormat" style="width: 100%; padding: 8px 12px; border: 1px solid #D1D1D6; border-radius: 8px; background-color: #F9F9F9; font-size: 14px; color: #1C1C1E; box-sizing: border-box;">
+                        <option value="docx" ${(result.exportFormat || 'docx') === 'docx' ? 'selected' : ''}>${t('exportFormatDocx')}</option>
+                        <option value="pdf" ${result.exportFormat === 'pdf' ? 'selected' : ''}>${t('exportFormatPdf')}</option>
+                    </select>
+                    <div style="font-size: 12px; color: #8E8E93; margin-top: 6px;">${t('exportFormatHelp')}</div>
+                </div>
+
                 <div style="background-color: white; border-radius: 12px; padding: 16px;">
                     <label style="display: block; margin-bottom: 6px; font-weight: 500; color: #3A3A3C; font-size: 14px;">${t('filenameFormat')}</label>
                     <input type="text" id="filenameFormat" value="${i18n.localizeFilenameFormat(result.filenameFormat)}" style="width: 100%; padding: 8px 12px; border: 1px solid #D1D1D6; border-radius: 8px; background-color: #F9F9F9; font-size: 14px; color: #1C1C1E; box-sizing: border-box;">
                     <div style="font-size: 12px; color: #8E8E93; margin-top: 6px;">${t('filenameFormatHelp')}</div>
+                </div>
+            </div>
+
+            <!-- 内容过滤设置组 -->
+            <div style="background-color: #F2F2F7; border-radius: 16px; padding: 10px; margin-bottom: 10px;">
+                <div style="font-size: 16px; font-weight: 600; color: #1C1C1E; margin-bottom: 16px;">${t('exportTextExcludeSettings')}</div>
+
+                <div style="background-color: white; border-radius: 12px; padding: 16px; margin-bottom: 12px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div>
+                            <div style="font-weight: 500; color: #3A3A3C; font-size: 14px;">${t('exportTextExcludeEnabled')}</div>
+                            <div style="font-size: 12px; color: #8E8E93; margin-top: 4px;">${t('exportTextExcludeEnabledHelp')}</div>
+                        </div>
+                        <div>
+                            <input type="checkbox" id="exportTextExcludeEnabled" ${(result.exportTextExcludeEnabled || 'yes') === 'yes' ? 'checked' : ''} style="display: none;">
+                            <label for="exportTextExcludeEnabled" style="
+                                display: inline-block;
+                                width: 51px;
+                                height: 31px;
+                                background-color: ${(result.exportTextExcludeEnabled || 'yes') === 'yes' ? '#34C759' : '#E5E5EA'};
+                                border-radius: 16px;
+                                position: relative;
+                                cursor: pointer;
+                                transition: background-color 0.3s ease;
+                                box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+                            ">
+                                <span style="
+                                    position: absolute;
+                                    top: 2px;
+                                    left: ${(result.exportTextExcludeEnabled || 'yes') === 'yes' ? '22px' : '2px'};
+                                    width: 27px;
+                                    height: 27px;
+                                    background-color: white;
+                                    border-radius: 50%;
+                                    transition: left 0.3s ease;
+                                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+                                "></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background-color: white; border-radius: 12px; padding: 16px;">
+                    <label style="display: block; margin-bottom: 6px; font-weight: 500; color: #3A3A3C; font-size: 14px;">${t('exportTextExcludeCustom')}</label>
+                    <textarea id="exportTextExcludeCustom" rows="4" placeholder="${t('exportTextExcludeCustomPlaceholder')}" style="width: 100%; padding: 8px 12px; border: 1px solid #D1D1D6; border-radius: 8px; background-color: #F9F9F9; font-size: 13px; color: #1C1C1E; box-sizing: border-box; resize: vertical; font-family: inherit;">${result.exportTextExcludeCustom || ''}</textarea>
+                    <div style="font-size: 12px; color: #8E8E93; margin-top: 6px;">${t('exportTextExcludeCustomHelp')}</div>
                 </div>
             </div>
         `;
@@ -4755,6 +4730,20 @@ function loadOptionsPanel() {
                 switchCircle.style.left = '2px';
             }
         });
+
+        if (getOptionsEl('exportTextExcludeEnabled')) {
+            getOptionsEl('exportTextExcludeEnabled').addEventListener('change', function() {
+                const switchLabel = this.nextElementSibling;
+                const switchCircle = switchLabel.querySelector('span');
+                if (this.checked) {
+                    switchLabel.style.backgroundColor = '#34C759';
+                    switchCircle.style.left = '22px';
+                } else {
+                    switchLabel.style.backgroundColor = '#E5E5EA';
+                    switchCircle.style.left = '2px';
+                }
+            });
+        }
 
         // 添加图片保存选项的事件监听器
         getOptionsEl('saveImages').addEventListener('change', function() {
@@ -5108,10 +5097,7 @@ function exportSingleArticle(article, index) {
 
         try {
             // 创建导出页面的iframe
-            const exportFrame = document.createElement('iframe');
-            exportFrame.src = safeGetURL('export.html') + '?fromMessage=true';
-            exportFrame.style.display = 'none';
-            document.body.appendChild(exportFrame);
+            const exportFrame = attachExportIframe();
 
             // 给脚本足够时间加载
             setTimeout(() => {
@@ -5154,32 +5140,53 @@ function exportSingleArticle(article, index) {
 }
 
 // 添加错误处理辅助函数
+let extensionContextInvalidNotified = false;
+
 function isExtensionContextValid() {
     try {
-        // 尝试访问chrome.runtime
-        return chrome.runtime && typeof chrome.runtime.getURL === 'function';
+        if (!chrome.runtime || !chrome.runtime.id) {
+            return false;
+        }
+        chrome.runtime.getURL('manifest.json');
+        return true;
     } catch (error) {
-        console.warn('Extension context check failed:', error);
         return false;
+    }
+}
+
+function notifyExtensionContextInvalidatedOnce() {
+    if (extensionContextInvalidNotified) {
+        return;
+    }
+    extensionContextInvalidNotified = true;
+    const message = (typeof t === 'function') ? t('extensionContextInvalid') : 'Extension updated — please refresh this page (F5)';
+    if (typeof showNotification === 'function') {
+        showNotification(message, { duration: 8000 });
+    } else {
+        console.warn(message);
     }
 }
 
 function safeGetURL(path) {
     try {
         if (!isExtensionContextValid()) {
-            throw new Error('Extension context invalidated');
+            notifyExtensionContextInvalidatedOnce();
+            return '';
         }
         return chrome.runtime.getURL(path);
     } catch (error) {
-        console.warn('Failed to get URL:', error);
+        notifyExtensionContextInvalidatedOnce();
         return '';
     }
 }
 
 function safeStorageGet(keys, callback) {
+    callback = typeof callback === 'function' ? callback : function () {};
     try {
         if (!isExtensionContextValid()) {
-            throw new Error('Extension context invalidated');
+            notifyExtensionContextInvalidatedOnce();
+            callback({});
+            return;
         }
         chrome.storage.local.get(keys, function (result) {
             if (chrome.runtime.lastError) {
@@ -5190,7 +5197,7 @@ function safeStorageGet(keys, callback) {
             callback(result);
         });
     } catch (error) {
-        console.warn('Failed to access storage:', error);
+        notifyExtensionContextInvalidatedOnce();
         callback({});
     }
 }
@@ -5199,7 +5206,9 @@ function safeStorageGet(keys, callback) {
 function safeStorageSet(items, callback) {
     try {
         if (!isExtensionContextValid()) {
-            throw new Error('Extension context invalidated');
+            notifyExtensionContextInvalidatedOnce();
+            if (callback) callback();
+            return;
         }
         chrome.storage.local.set(items, function () {
             if (chrome.runtime.lastError) {
@@ -5208,7 +5217,7 @@ function safeStorageSet(items, callback) {
             if (callback) callback();
         });
     } catch (error) {
-        console.warn('Failed to set storage:', error);
+        notifyExtensionContextInvalidatedOnce();
         if (callback) callback();
     }
 }
@@ -5876,6 +5885,536 @@ function isElementHiddenForExtract(el) {
     return false;
 }
 
+/** 两个矩形是否有可见重叠（排除仅边缘相切） */
+function rectsIntersect(a, b, minOverlapPx) {
+    const minOverlap = minOverlapPx == null ? 1 : minOverlapPx;
+    const overlapW = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+    const overlapH = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+    return overlapW >= minOverlap && overlapH >= minOverlap;
+}
+
+function getSelectionClientRects(range) {
+    if (!range) {
+        return [];
+    }
+    const clientRects = Array.from(range.getClientRects());
+    if (clientRects.length > 0) {
+        return clientRects;
+    }
+    try {
+        const boundingRect = range.getBoundingClientRect();
+        if (boundingRect && (boundingRect.width > 0 || boundingRect.height > 0)) {
+            return [boundingRect];
+        }
+    } catch (e) { /* ignore */ }
+    return [];
+}
+
+function selectionHasGeometricHighlight(range) {
+    return getSelectionClientRects(range).length > 0;
+}
+
+/** 元素是否与选区高亮区域在屏幕上有几何重叠 */
+function isGeometricallyInSelection(range, node) {
+    if (!range || !node || node.nodeType !== Node.ELEMENT_NODE) {
+        return false;
+    }
+    if (!node.isConnected) {
+        return false;
+    }
+    try {
+        const nodeRect = node.getBoundingClientRect();
+        if (nodeRect.width < 1 && nodeRect.height < 1) {
+            return false;
+        }
+        const selectionRects = getSelectionClientRects(range);
+        if (selectionRects.length === 0) {
+            return rangeIntersectsNodeSafely(range, node);
+        }
+        for (let i = 0; i < selectionRects.length; i++) {
+            if (rectsIntersect(selectionRects[i], nodeRect)) {
+                return true;
+            }
+        }
+        return false;
+    } catch (e) {
+        return false;
+    }
+}
+
+function rangeIntersectsNodeSafely(range, node) {
+    if (!range || !node) {
+        return false;
+    }
+    try {
+        if (typeof range.intersectsNode === 'function') {
+            return range.intersectsNode(node);
+        }
+    } catch (e) { /* fall through */ }
+    try {
+        const nodeRange = document.createRange();
+        nodeRange.selectNodeContents(node);
+        return range.compareBoundaryPoints(Range.END_TO_START, nodeRange) > 0 &&
+            range.compareBoundaryPoints(Range.START_TO_END, nodeRange) < 0;
+    } catch (e) {
+        return false;
+    }
+}
+
+function getElementRootFromRange(range) {
+    if (!range) {
+        return null;
+    }
+    const root = range.commonAncestorContainer;
+    if (!root) {
+        return null;
+    }
+    return root.nodeType === Node.ELEMENT_NODE ? root : root.parentElement;
+}
+
+function resolveBackgroundImageUrl(el) {
+    if (!el || el.nodeType !== Node.ELEMENT_NODE) {
+        return null;
+    }
+    if (el.style && el.style.backgroundImage && el.style.backgroundImage !== 'none') {
+        const match = el.style.backgroundImage.match(/url\(['"]?([^'"]+)['"]?\)/);
+        if (match && match[1]) {
+            return match[1];
+        }
+    }
+    return null;
+}
+
+/**
+ * 仅收集与选区高亮区域有几何重叠的图片。
+ * 解决 float/侧栏作者块在 DOM 顺序上位于选区内、但视觉上不在选区的问题。
+ */
+function collectImagesGeometricallyInRange(range, selectedText) {
+    const images = [];
+    if (!range) {
+        return images;
+    }
+    const elementRoot = getElementRootFromRange(range);
+    if (!elementRoot) {
+        return images;
+    }
+    const seenImageSrcs = new Set();
+    let imageIndex = 0;
+
+    function pushImage(data) {
+        const srcKey = normalizeImageSrc(data.src);
+        if (!srcKey || srcKey.startsWith('data:') || seenImageSrcs.has(srcKey)) {
+            return;
+        }
+        seenImageSrcs.add(srcKey);
+
+        let startOffset = 0;
+        let endOffset = 0;
+        let positionCalculated = false;
+
+        if (data.element && data.element.isConnected) {
+            try {
+                const imgRange = document.createRange();
+                imgRange.selectNode(data.element);
+                if (range.compareBoundaryPoints(Range.START_TO_START, imgRange) <= 0 &&
+                    range.compareBoundaryPoints(Range.END_TO_END, imgRange) >= 0) {
+                    const tempRange = document.createRange();
+                    tempRange.setStart(range.startContainer, range.startOffset);
+                    tempRange.setEnd(imgRange.startContainer, imgRange.startOffset);
+                    startOffset = tempRange.toString().length;
+                    endOffset = startOffset + 1;
+                    if (startOffset < 0) startOffset = 0;
+                    if (endOffset <= startOffset) endOffset = startOffset + 1;
+                    positionCalculated = true;
+                }
+            } catch (e) { /* use fallback */ }
+        }
+
+        if (!positionCalculated) {
+            startOffset = (selectedText || '').length + imageIndex;
+            endOffset = startOffset + 1;
+        }
+
+        images.push({
+            src: data.src,
+            alt: data.alt || '',
+            width: data.width || 0,
+            height: data.height || 0,
+            position: {
+                startOffset: startOffset,
+                endOffset: endOffset,
+                type: data.type || 'img'
+            }
+        });
+        imageIndex++;
+    }
+
+    function considerImageElement(el) {
+        if (!el || el.nodeType !== Node.ELEMENT_NODE) {
+            return;
+        }
+        if (shouldSkipNodeForExtract(el, elementRoot)) {
+            return;
+        }
+        if (!rangeIntersectsNodeSafely(range, el)) {
+            return;
+        }
+        if (!isGeometricallyInSelection(range, el)) {
+            return;
+        }
+        if (el.tagName === 'IMG') {
+            const src = el.getAttribute('src') || el.src || '';
+            if (src) {
+                pushImage({
+                    element: el,
+                    src: src,
+                    alt: el.getAttribute('alt') || '',
+                    width: el.naturalWidth || el.width || 0,
+                    height: el.naturalHeight || el.height || 0,
+                    type: 'img'
+                });
+            }
+            return;
+        }
+        const bgSrc = resolveBackgroundImageUrl(el);
+        if (bgSrc) {
+            pushImage({
+                element: el,
+                src: bgSrc,
+                alt: '背景图片',
+                width: el.offsetWidth || 100,
+                height: el.offsetHeight || 100,
+                type: 'background'
+            });
+        }
+    }
+
+    elementRoot.querySelectorAll('img').forEach(considerImageElement);
+
+    const walker = document.createTreeWalker(elementRoot, NodeFilter.SHOW_ELEMENT, null, false);
+    let node;
+    while ((node = walker.nextNode())) {
+        if (node.tagName === 'IMG') {
+            continue;
+        }
+        if (node.style && node.style.backgroundImage && node.style.backgroundImage !== 'none') {
+            considerImageElement(node);
+        }
+    }
+
+    return images;
+}
+
+function buildAllowedImageSrcSetFromRange(range) {
+    const set = new Set();
+    if (!range) {
+        return set;
+    }
+    collectImagesGeometricallyInRange(range, '').forEach(function (img) {
+        const key = normalizeImageSrc(img.src);
+        if (key) {
+            set.add(key);
+        }
+    });
+    return set;
+}
+
+function rectsIntersectAny(rectListA, rectListB, minOverlapPx) {
+    if (!rectListA.length || !rectListB.length) {
+        return false;
+    }
+    for (let i = 0; i < rectListA.length; i++) {
+        for (let j = 0; j < rectListB.length; j++) {
+            if (rectsIntersect(rectListA[i], rectListB[j], minOverlapPx)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+function isTextNodeGeometricallyInSelection(range, textNode) {
+    if (!range || !textNode || textNode.nodeType !== Node.TEXT_NODE) {
+        return false;
+    }
+    const content = textNode.textContent;
+    if (!content || !/[^\s]/.test(content)) {
+        return true;
+    }
+    try {
+        const textRange = document.createRange();
+        textRange.selectNodeContents(textNode);
+        return rectsIntersectAny(
+            getSelectionClientRects(range),
+            Array.from(textRange.getClientRects())
+        );
+    } catch (e) {
+        return false;
+    }
+}
+
+/** 块级/侧栏容器在 DOM 选区内但不在蓝色高亮区域时，跳过整棵子树 */
+function shouldSkipElementSubtreeGeometrically(range, el) {
+    if (!el || el.nodeType !== Node.ELEMENT_NODE || !el.isConnected) {
+        return false;
+    }
+    const blockLikeTags = {
+        DIV: true, P: true, H1: true, H2: true, H3: true, H4: true, H5: true, H6: true,
+        SECTION: true, ARTICLE: true, HEADER: true, FOOTER: true, NAV: true, MAIN: true,
+        ASIDE: true, BLOCKQUOTE: true, PRE: true, TABLE: true, UL: true, OL: true, LI: true,
+        FORM: true, FIELDSET: true, FIGURE: true, FIGCAPTION: true, DETAILS: true, SUMMARY: true
+    };
+    if (!blockLikeTags[el.tagName]) {
+        return false;
+    }
+    if (!selectionHasGeometricHighlight(range)) {
+        return false;
+    }
+    return !isGeometricallyInSelection(range, el);
+}
+
+/**
+ * 按选区蓝色高亮区域提取文本/链接/占位符，排除 float/侧栏等在 DOM 顺序上被包含的内容。
+ */
+function extractRichTextFromRangeGeometrically(range, options) {
+    options = options || {};
+    const saveImages = options.saveImages === true;
+    const saveTables = options.saveTables === true;
+    const allowedImageSrcs = options.allowedImageSrcs || null;
+    const relaxTextGeometry = options.relaxTextGeometry === true;
+    const elementRoot = getElementRootFromRange(range);
+
+    let result = '';
+    let imageIndex = 0;
+    let tableIndex = 0;
+    const links = [];
+    const seenImageSrcs = new Set();
+
+    if (!range || !elementRoot) {
+        return { text: '', links: [] };
+    }
+
+    function resolveLinkHref(href) {
+        if (!href || !String(href).trim()) return '';
+        const trimmed = String(href).trim();
+        if (/^javascript:/i.test(trimmed)) return '';
+        try {
+            return new URL(trimmed, document.baseURI || window.location.href).href;
+        } catch (e) {
+            return trimmed;
+        }
+    }
+
+    function appendImagePlaceholder() {
+        if (result.length > 0 && result[result.length - 1] !== '\n') {
+            result += '\n';
+        }
+        result += '[image' + String(imageIndex).padStart(2, '0') + ']\n';
+        imageIndex++;
+    }
+
+    function walkLiveNode(node) {
+        if (!rangeIntersectsNodeSafely(range, node)) {
+            return;
+        }
+
+        if (node.nodeType === Node.TEXT_NODE) {
+            if (!rangeIntersectsNodeSafely(range, node)) {
+                return;
+            }
+
+            let start = 0;
+            let end = node.textContent.length;
+            if (range.startContainer === node) {
+                start = range.startOffset;
+            }
+            if (range.endContainer === node) {
+                end = range.endOffset;
+            }
+            if (start >= end) {
+                return;
+            }
+
+            if (!relaxTextGeometry && selectionHasGeometricHighlight(range)) {
+                try {
+                    const subRange = document.createRange();
+                    subRange.setStart(node, start);
+                    subRange.setEnd(node, end);
+                    const selRects = getSelectionClientRects(range);
+                    const subRects = Array.from(subRange.getClientRects());
+                    if (selRects.length > 0 && subRects.length > 0) {
+                        if (!rectsIntersectAny(selRects, subRects)) {
+                            return;
+                        }
+                    } else if (selRects.length > 0 && subRects.length === 0) {
+                        const parentEl = node.parentElement;
+                        if (parentEl && !isGeometricallyInSelection(range, parentEl)) {
+                            return;
+                        }
+                    }
+                } catch (e) {
+                    if (!isTextNodeGeometricallyInSelection(range, node)) {
+                        return;
+                    }
+                }
+            }
+
+            result += node.textContent.slice(start, end);
+            return;
+        }
+
+        if (node.nodeType !== Node.ELEMENT_NODE) {
+            return;
+        }
+
+        if (shouldSkipNodeForExtract(node, elementRoot)) {
+            return;
+        }
+        if (shouldSkipElementSubtreeGeometrically(range, node)) {
+            return;
+        }
+
+        if (node.tagName === 'BR') {
+            result += '\n';
+            return;
+        }
+
+        if (node.tagName === 'A') {
+            const absHref = resolveLinkHref(node.getAttribute('href'));
+            const start = result.length;
+            for (let i = 0; i < node.childNodes.length; i++) {
+                walkLiveNode(node.childNodes[i]);
+            }
+            const addedLength = result.length - start;
+            if (absHref && addedLength > 0) {
+                links.push({ start: start, length: addedLength, href: absHref });
+            }
+            if (isBlockElement(node) && result.length > start && result[result.length - 1] !== '\n') {
+                result += '\n';
+            }
+            return;
+        }
+
+        if (saveTables && isTableRootElement(node) && !hasAncestorTableRoot(node, elementRoot)) {
+            result += '[table' + String(tableIndex).padStart(2, '0') + ']';
+            tableIndex++;
+            if (isBlockElement(node)) {
+                result += '\n';
+            }
+            return;
+        }
+
+        if (saveImages && node.tagName === 'IMG') {
+            const src = node.getAttribute('src') || node.src || '';
+            const srcKey = normalizeImageSrc(src);
+            if (srcKey && !srcKey.startsWith('data:') && !seenImageSrcs.has(srcKey)) {
+                if (allowedImageSrcs && !allowedImageSrcs.has(srcKey)) {
+                    return;
+                }
+                if (!isGeometricallyInSelection(range, node)) {
+                    return;
+                }
+                seenImageSrcs.add(srcKey);
+                appendImagePlaceholder();
+            }
+            return;
+        }
+
+        if (saveImages && node.style && node.style.backgroundImage && node.style.backgroundImage !== 'none') {
+            const bgMatch = node.style.backgroundImage.match(/url\(['"]?([^'"]+)['"]?\)/);
+            const srcKey = bgMatch && bgMatch[1] ? normalizeImageSrc(bgMatch[1]) : '';
+            if (srcKey && !srcKey.startsWith('data:') && !seenImageSrcs.has(srcKey)) {
+                if (allowedImageSrcs && !allowedImageSrcs.has(srcKey)) {
+                    return;
+                }
+                if (!isGeometricallyInSelection(range, node)) {
+                    return;
+                }
+                seenImageSrcs.add(srcKey);
+                appendImagePlaceholder();
+            }
+            return;
+        }
+
+        const blockLenBefore = result.length;
+        for (let i = 0; i < node.childNodes.length; i++) {
+            walkLiveNode(node.childNodes[i]);
+        }
+        if (isBlockElement(node) && result.length > blockLenBefore && result[result.length - 1] !== '\n') {
+            result += '\n';
+        }
+    }
+
+    walkLiveNode(elementRoot);
+
+    result = result.replace(/\n{4,}/g, '\n\n\n');
+    return { text: result, links: links };
+}
+
+function selectionHasMeaningfulText(text) {
+    return !!(text && /[^\s\u00a0]/.test(text));
+}
+
+/** 从选区提取内容；几何过滤无结果时回退到 DOM 选区文本，保证工具栏与导出可用 */
+function getSelectionContentFromRange(range, options) {
+    options = options || {};
+    if (!range) {
+        return { text: '', links: [] };
+    }
+
+    const geometric = extractRichTextFromRangeGeometrically(range, options);
+    if (selectionHasMeaningfulText(geometric.text)) {
+        return geometric;
+    }
+
+    const domText = range.toString();
+    if (!selectionHasMeaningfulText(domText)) {
+        return { text: '', links: [] };
+    }
+
+    const blockFiltered = extractRichTextFromRangeGeometrically(range, Object.assign({}, options, {
+        relaxTextGeometry: true
+    }));
+    if (selectionHasMeaningfulText(blockFiltered.text)) {
+        return blockFiltered;
+    }
+
+    return {
+        text: domText,
+        links: extractTextAndLinksFromSelection(domText, range).links || []
+    };
+}
+
+function extractTablesGeometricallyInRange(range) {
+    const elementRoot = getElementRootFromRange(range);
+    if (!range || !elementRoot) {
+        return [];
+    }
+    const roots = getOrderedTableRoots(elementRoot).filter(function (tableEl) {
+        if (shouldSkipNodeForExtract(tableEl, elementRoot)) {
+            return false;
+        }
+        if (!rangeIntersectsNodeSafely(range, tableEl)) {
+            return false;
+        }
+        return isGeometricallyInSelection(range, tableEl);
+    });
+    const tables = roots.map(function (tableEl, index) {
+        return {
+            tableIndex: index,
+            placeholder: '[table' + String(index).padStart(2, '0') + ']',
+            data: extractTableLikeData(tableEl),
+            sourceType: tableEl.tagName === 'TABLE' ? 'native' : 'div'
+        };
+    });
+    return deduplicateTablesByContent(tables).map(function (tableEntry, index) {
+        return Object.assign({}, tableEntry, {
+            tableIndex: index,
+            placeholder: '[table' + String(index).padStart(2, '0') + ']'
+        });
+    });
+}
+
 function hasHiddenExtractAncestor(node, stopAt) {
     let cur = node.parentNode;
     while (cur && cur !== stopAt) {
@@ -5932,6 +6471,7 @@ function getTextWithRichContent(container, options) {
     options = options || {};
     const saveImages = options.saveImages === true;
     const saveTables = options.saveTables === true;
+    const allowedImageSrcs = options.allowedImageSrcs || null;
     let result = '';
     let imageIndex = 0;
     let tableIndex = 0;
@@ -5993,6 +6533,9 @@ function getTextWithRichContent(container, options) {
                 const src = node.getAttribute('src') || node.src || '';
                 const srcKey = normalizeImageSrc(src);
                 if (srcKey && !srcKey.startsWith('data:') && !seenImageSrcs.has(srcKey)) {
+                    if (allowedImageSrcs && !allowedImageSrcs.has(srcKey)) {
+                        return;
+                    }
                     seenImageSrcs.add(srcKey);
                     appendImagePlaceholder();
                 }
@@ -6001,6 +6544,9 @@ function getTextWithRichContent(container, options) {
                 const bgMatch = node.style.backgroundImage.match(/url\(['"]?([^'"]+)['"]?\)/);
                 const srcKey = bgMatch && bgMatch[1] ? normalizeImageSrc(bgMatch[1]) : '';
                 if (srcKey && !srcKey.startsWith('data:') && !seenImageSrcs.has(srcKey)) {
+                    if (allowedImageSrcs && !allowedImageSrcs.has(srcKey)) {
+                        return;
+                    }
                     seenImageSrcs.add(srcKey);
                     appendImagePlaceholder();
                 }
@@ -6038,7 +6584,7 @@ function getTextWithImagePositions(container, options) {
     return getTextWithRichContent(container, options);
 }
 
-/** 从当前选区提取文本与超链接（无图片/表格占位符时使用） */
+/** 从当前选区提取文本与超链接（严格按蓝色高亮区域） */
 function extractTextAndLinksFromSelection(fallbackText, capturedRange) {
     let range = capturedRange || null;
     if (!range) {
@@ -6050,9 +6596,10 @@ function extractTextAndLinksFromSelection(fallbackText, capturedRange) {
     if (!range) {
         return { text: fallbackText || '', links: [] };
     }
-    const tempContainer = document.createElement('div');
-    tempContainer.appendChild(range.cloneContents());
-    const rich = getTextWithRichContent(tempContainer, { saveImages: false, saveTables: false });
+    const rich = getSelectionContentFromRange(range, {
+        saveImages: false,
+        saveTables: false
+    });
     return {
         text: rich.text || fallbackText || '',
         links: rich.links || []
@@ -6063,15 +6610,24 @@ function extractTextAndLinksFromSelection(fallbackText, capturedRange) {
 function extractImagesFromContainer(container, options) {
     options = options || {};
     const saveTables = options.saveTables === true;
+    const allowedImageSrcs = options.allowedImageSrcs || null;
     const images = [];
     const seenImageSrcs = new Set();
 
     function resolveBackgroundSrc(node) {
-        if (!node.style || !node.style.backgroundImage || node.style.backgroundImage === 'none') {
-            return null;
+        return resolveBackgroundImageUrl(node);
+    }
+
+    function pushImageEntry(src, entry) {
+        const srcKey = normalizeImageSrc(src);
+        if (!srcKey || srcKey.startsWith('data:') || seenImageSrcs.has(srcKey)) {
+            return;
         }
-        const match = node.style.backgroundImage.match(/url\(['"]?([^'"]+)['"]?\)/);
-        return match && match[1] ? match[1] : null;
+        if (allowedImageSrcs && !allowedImageSrcs.has(srcKey)) {
+            return;
+        }
+        seenImageSrcs.add(srcKey);
+        images.push(entry);
     }
 
     function walk(node) {
@@ -6092,31 +6648,23 @@ function extractImagesFromContainer(container, options) {
         }
         if (node.tagName === 'IMG') {
             const src = node.getAttribute('src') || node.src || '';
-            const srcKey = normalizeImageSrc(src);
-            if (srcKey && !srcKey.startsWith('data:') && !seenImageSrcs.has(srcKey)) {
-                seenImageSrcs.add(srcKey);
-                images.push({
-                    src: src,
-                    alt: node.getAttribute('alt') || '',
-                    width: node.naturalWidth || node.width || 0,
-                    height: node.naturalHeight || node.height || 0
-                });
-            }
+            pushImageEntry(src, {
+                src: src,
+                alt: node.getAttribute('alt') || '',
+                width: node.naturalWidth || node.width || 0,
+                height: node.naturalHeight || node.height || 0
+            });
             return;
         }
         const bgSrc = resolveBackgroundSrc(node);
-        if (bgSrc && !bgSrc.startsWith('data:')) {
-            const srcKey = normalizeImageSrc(bgSrc);
-            if (srcKey && !seenImageSrcs.has(srcKey)) {
-                seenImageSrcs.add(srcKey);
-                images.push({
-                    src: bgSrc,
-                    alt: '背景图片',
-                    width: node.offsetWidth || 100,
-                    height: node.offsetHeight || 100,
-                    isBackground: true
-                });
-            }
+        if (bgSrc) {
+            pushImageEntry(bgSrc, {
+                src: bgSrc,
+                alt: '背景图片',
+                width: node.offsetWidth || 100,
+                height: node.offsetHeight || 100,
+                isBackground: true
+            });
             return;
         }
         for (let i = 0; i < node.childNodes.length; i++) {
@@ -6206,23 +6754,19 @@ function extractRichContentFromSelection(selectedText, options) {
     }
 
     if (range) {
-        const tempContainer = document.createElement('div');
-        tempContainer.appendChild(range.cloneContents());
-        document.body.appendChild(tempContainer);
-        try {
-            const rich = getTextWithRichContent(tempContainer, { saveImages: saveImages, saveTables: saveTables });
-            fullTextContent = rich.text;
-            storedLinks = rich.links || [];
-            if (saveTables) {
-                processedTables = extractTablesFromContainer(tempContainer);
-            }
-            if (saveImages) {
-                extractedImages = extractImagesFromContainer(tempContainer, { saveTables: saveTables });
-            }
-        } finally {
-            if (tempContainer.parentElement) {
-                document.body.removeChild(tempContainer);
-            }
+        const allowedImageSrcs = saveImages ? buildAllowedImageSrcSetFromRange(range) : null;
+        const rich = getSelectionContentFromRange(range, {
+            saveImages: saveImages,
+            saveTables: saveTables,
+            allowedImageSrcs: allowedImageSrcs
+        });
+        fullTextContent = rich.text;
+        storedLinks = rich.links || [];
+        if (saveTables) {
+            processedTables = extractTablesGeometricallyInRange(range);
+        }
+        if (saveImages) {
+            extractedImages = collectImagesGeometricallyInRange(range, fullTextContent);
         }
     } else {
         const fallback = extractTextAndLinksFromSelection(fullTextContent, null);
@@ -6233,129 +6777,120 @@ function extractRichContentFromSelection(selectedText, options) {
     return { text: fullTextContent, links: storedLinks, tables: processedTables, images: extractedImages };
 }
 
-/** 暂存前统一处理文本、图片与表格 */
+/** 暂存前统一处理文本、图片与表格（严格只保留选区高亮内的内容） */
 async function prepareContentForStorage(selectedText, selectedImages, storageSettings, capturedRange) {
     const saveImages = storageSettings.saveImages === 'yes';
     const saveTables = storageSettings.saveTables === 'yes';
+
+    const extracted = extractRichContentFromSelection(selectedText, {
+        saveImages: saveImages,
+        saveTables: saveTables,
+        capturedRange: capturedRange || null
+    });
+
+    let textWithPlaceholders = extracted.text;
+    let storedLinks = extracted.links || [];
+    let processedTables = extracted.tables || [];
     let processedImages = [];
-    let processedTables = [];
-    let textWithPlaceholders = selectedText;
-    let storedLinks = [];
 
-    if (saveImages || saveTables) {
-        const extracted = extractRichContentFromSelection(selectedText, {
-            saveImages: saveImages,
-            saveTables: saveTables,
-            capturedRange: capturedRange || null
+    if (saveTables && processedTables.length > 0) {
+        const tablePlaceholderCount = (textWithPlaceholders.match(/\[table\d{2}\]/g) || []).length;
+        if (tablePlaceholderCount !== processedTables.length) {
+            if (tablePlaceholderCount > processedTables.length) {
+                textWithPlaceholders = normalizeTablePlaceholders(textWithPlaceholders, processedTables.length);
+            } else {
+                processedTables = processedTables.slice(0, tablePlaceholderCount);
+            }
+        }
+        processedTables = processedTables.map(function (tableEntry, index) {
+            return Object.assign({}, tableEntry, {
+                tableIndex: index,
+                placeholder: '[table' + String(index).padStart(2, '0') + ']'
+            });
         });
-        textWithPlaceholders = extracted.text;
-        storedLinks = extracted.links || [];
-        processedTables = extracted.tables || [];
-
-        const candidateImages = deduplicateImagesBySrc(
-            (extracted.images && extracted.images.length > 0) ? extracted.images : selectedImages
-        );
-        const effectiveSaveImages = saveImages && candidateImages.length > 0;
-
-        if (effectiveSaveImages) {
-            showNotification(t('processingContent'), { replaceKey: 'store-progress' });
-        }
-
-        if (saveTables && processedTables.length > 0) {
-            const tablePlaceholderCount = (textWithPlaceholders.match(/\[table\d{2}\]/g) || []).length;
-            if (tablePlaceholderCount !== processedTables.length) {
-                if (tablePlaceholderCount > processedTables.length) {
-                    textWithPlaceholders = normalizeTablePlaceholders(textWithPlaceholders, processedTables.length);
-                } else {
-                    // 占位符少于表格数：丢弃无对应占位符的多余表格，避免在文末追加重复表格
-                    processedTables = processedTables.slice(0, tablePlaceholderCount);
-                }
-            }
-            processedTables = processedTables.map(function (tableEntry, index) {
-                return Object.assign({}, tableEntry, {
-                    tableIndex: index,
-                    placeholder: '[table' + String(index).padStart(2, '0') + ']'
-                });
-            });
-        }
-
-        if (effectiveSaveImages) {
-            const sortedImages = [...candidateImages].sort(function (a, b) {
-                if (a.position && b.position) {
-                    return a.position.startOffset - b.position.startOffset;
-                }
-                return 0;
-            });
-
-            if (!window.getSelection() || window.getSelection().rangeCount === 0) {
-                sortedImages.forEach(function (_, index) {
-                    if (!(textWithPlaceholders.match(new RegExp('\\[image' + String(index).padStart(2, '0') + '\\]')))) {
-                        textWithPlaceholders += '\n[image' + String(index).padStart(2, '0') + ']';
-                    }
-                });
-            }
-
-            for (let i = 0; i < sortedImages.length; i++) {
-                const img = sortedImages[i];
-                const placeholder = '[image' + String(i).padStart(2, '0') + ']';
-                try {
-                    const processedImage = await Utility.imageToBase64(
-                        img.src,
-                        storageSettings.imageQuality,
-                        storageSettings.imageMaxWidth,
-                        storageSettings.imageMaxHeight,
-                        storageSettings.imageFormat,
-                        { referer: window.location.href }
-                    );
-                    processedImages.push(Object.assign({}, processedImage, {
-                        alt: img.alt,
-                        originalWidth: img.width,
-                        originalHeight: img.height,
-                        placeholder: placeholder,
-                        imageIndex: i,
-                        uniqueId: Utility.generateUniqueId()
-                    }));
-                } catch (error) {
-                    console.warn('Failed to process image:', img.src, error);
-                    processedImages.push({
-                        data: '',
-                        alt: img.alt || '图片加载失败',
-                        originalWidth: img.width || 100,
-                        originalHeight: img.height || 100,
-                        placeholder: placeholder,
-                        imageIndex: i,
-                        uniqueId: Utility.generateUniqueId()
-                    });
-                }
-            }
-
-            const placeholderCount = (textWithPlaceholders.match(/\[image\d{2}\]/g) || []).length;
-            if (placeholderCount !== processedImages.length) {
-                if (placeholderCount > processedImages.length) {
-                    textWithPlaceholders = normalizeImagePlaceholders(textWithPlaceholders, processedImages.length);
-                } else if (placeholderCount === 0) {
-                    processedImages.forEach(function (_, index) {
-                        textWithPlaceholders += '\n[image' + String(index).padStart(2, '0') + ']';
-                    });
-                } else if (placeholderCount < processedImages.length) {
-                    for (let i = placeholderCount; i < processedImages.length; i++) {
-                        textWithPlaceholders += '\n[image' + String(i).padStart(2, '0') + ']';
-                    }
-                }
-            }
-        }
-    } else {
-        const extracted = extractTextAndLinksFromSelection(selectedText);
-        textWithPlaceholders = (extracted.text || selectedText).replace(/\[image\d{2}\]/g, '').replace(/\[table\d{2}\]/g, '');
-        storedLinks = extracted.links || [];
     }
 
-    return {
+    const candidateImages = deduplicateImagesBySrc(
+        (extracted.images && extracted.images.length > 0) ? extracted.images : selectedImages
+    );
+    const imagePlaceholderCount = (textWithPlaceholders.match(/\[image\d{2}\]/g) || []).length;
+
+    if (saveImages && imagePlaceholderCount > 0 && candidateImages.length > 0) {
+        showNotification(t('processingContent'), { replaceKey: 'store-progress' });
+
+        const sortedImages = [...candidateImages].sort(function (a, b) {
+            if (a.position && b.position) {
+                return a.position.startOffset - b.position.startOffset;
+            }
+            return 0;
+        });
+        const imagesToProcess = sortedImages.slice(0, imagePlaceholderCount);
+
+        for (let i = 0; i < imagesToProcess.length; i++) {
+            const img = imagesToProcess[i];
+            const placeholder = '[image' + String(i).padStart(2, '0') + ']';
+            try {
+                const processedImage = await Utility.imageToBase64(
+                    img.src,
+                    storageSettings.imageQuality,
+                    storageSettings.imageMaxWidth,
+                    storageSettings.imageMaxHeight,
+                    storageSettings.imageFormat,
+                    { referer: window.location.href }
+                );
+                processedImages.push(Object.assign({}, processedImage, {
+                    alt: img.alt,
+                    originalWidth: img.width,
+                    originalHeight: img.height,
+                    placeholder: placeholder,
+                    imageIndex: i,
+                    uniqueId: Utility.generateUniqueId()
+                }));
+            } catch (error) {
+                console.warn('Failed to process image:', img.src, error);
+                processedImages.push({
+                    data: '',
+                    alt: img.alt || '图片加载失败',
+                    originalWidth: img.width || 100,
+                    originalHeight: img.height || 100,
+                    placeholder: placeholder,
+                    imageIndex: i,
+                    uniqueId: Utility.generateUniqueId()
+                });
+            }
+        }
+
+        if (processedImages.length < imagePlaceholderCount) {
+            textWithPlaceholders = normalizeImagePlaceholders(textWithPlaceholders, processedImages.length);
+        }
+    }
+
+    if (!selectionHasMeaningfulText(textWithPlaceholders) && selectionHasMeaningfulText(selectedText)) {
+        textWithPlaceholders = selectedText;
+    }
+
+    const excludeSettings = await loadExportTextExcludeSettings();
+    const prepared = {
         text: textWithPlaceholders,
         images: processedImages,
         tables: processedTables,
         links: storedLinks
     };
+    if (window.DocExportTextFilter) {
+        return window.DocExportTextFilter.filterFormattedArticle(prepared, excludeSettings);
+    }
+    return prepared;
+}
+
+function loadExportTextExcludeSettings() {
+    return new Promise(function (resolve) {
+        safeStorageGet(['exportTextExcludeEnabled', 'exportTextExcludeCustom'], function (result) {
+            resolve({
+                exportTextExcludeEnabled: result.exportTextExcludeEnabled !== 'no' ? 'yes' : 'no',
+                exportTextExcludeCustom: result.exportTextExcludeCustom || ''
+            });
+        });
+    });
 }
 
 async function loadStorageSettings() {
@@ -7091,7 +7626,7 @@ function handleCopyClick(selectedText, buttons) {
 async function handleExportClick(selectedText, selectedImages, buttons, capturedRange) {
     isButtonVisible = false;
 
-    if (!selectedText || !selectedText.trim()) {
+    if (!selectionHasMeaningfulText(selectedText) || !selectedText.trim()) {
         showNotification(t('nothingToExport'));
         buttons.forEach(function (button) {
             if (button.parentElement) button.remove();
@@ -7299,16 +7834,23 @@ document.addEventListener('keydown', function(event) {
     if (isHotkeyPressed(event, pluginSettings.storeHotkey)) {
         event.preventDefault();
         const selection = window.getSelection();
-        const selectedText = selection.toString().trim();
-        if (selectedText) {
-            let capturedRange = null;
-            if (selection.rangeCount > 0) {
-                try {
-                    capturedRange = selection.getRangeAt(0).cloneRange();
-                } catch (e) {
-                    capturedRange = null;
-                }
+        let selectedText = '';
+        let capturedRange = null;
+        if (selection.rangeCount > 0) {
+            try {
+                capturedRange = selection.getRangeAt(0).cloneRange();
+                selectedText = getSelectionContentFromRange(capturedRange, {
+                    saveImages: false,
+                    saveTables: false
+                }).text.trim();
+            } catch (e) {
+                capturedRange = null;
+                selectedText = selection.toString().trim();
             }
+        } else {
+            selectedText = selection.toString().trim();
+        }
+        if (selectedText) {
             autoStoreText(selectedText, [], capturedRange);
         }
     }
