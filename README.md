@@ -86,6 +86,7 @@ Web to Doc is released under the [GNU General Public License v3.0](./LICENSE).
 Third-party open-source libraries are listed in [THIRD_PARTY_LICENSES.md](./THIRD_PARTY_LICENSES.md).
 
 ## Links
+- **52pojie**：[https://www.52pojie.cn/](https://www.52pojie.cn/)
 - **linux.do**：[https://linux.do/](https://linux.do/)
 
 ---
