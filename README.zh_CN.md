@@ -94,6 +94,7 @@ Web to Doc 基于 [GNU General Public License v3.0](./LICENSE) 开源发布。
 ---
 
 ## 链接
+- **吾爱破解**：[https://www.52pojie.cn/](https://www.52pojie.cn/)
 - **linux.do**：[https://linux.do/](https://linux.do/)
 
 ### 作者信息
